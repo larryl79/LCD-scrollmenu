@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
 #define LCDADDR 0x27                           // address of LCD on I2C bus
-#define LCDLINES 4
-#define LCDROWS 20
+#define LCDLINES 4                             // how many lines of the LCD
+#define LCDCOLUMNS 20                          // how many columns of the LCD  
 
 #define pin_up 5
 #define pin_down 18
-LiquidCrystal_I2C lcd(LCDADDR, LCDROWS, LCDLINES);
+LiquidCrystal_I2C lcd(LCDADDR, LCDCOLUMNS, LCDLINES);
 // roundup = ceil();
 
 int cursorpos_prev=1;   //dont change it
@@ -114,7 +114,7 @@ void buttonUp()
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
   if (interrupt_time - last_interrupt_time > 200) 
     {
-    if (menu_cursor<maxmenuitem)
+    if (menu_cursor<maxmenuitem-1)
     menu_cursor++;
     }
   last_interrupt_time = interrupt_time;
