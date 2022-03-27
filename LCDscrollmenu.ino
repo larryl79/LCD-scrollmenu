@@ -6,12 +6,15 @@
 
 #define pin_up 5
 #define pin_down 18
+#define pin_button 27
+
 LiquidCrystal_I2C lcd(LCDADDR, LCDCOLUMNS, LCDLINES);
 // roundup = ceil();
 
+int menu_cursor = 0;
 int cursorpos_prev=1;   //dont change it
 
-const int maxmenuitem = 14;      // have to be same as elements number of menu_labels
+const int maxmenuitem = 14;      // elements number of menu_labels
 const char *menu_labels [maxmenuitem] =   // create menu labels
   {
    "Info page 1",
@@ -30,12 +33,26 @@ const char *menu_labels [maxmenuitem] =   // create menu labels
    "Lastmenu"
     };
 
-int menu_cursor = 0;
+bool menu_selected [maxmenuitem] = { false };
+/*
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false
+    };
+*/
 
+/*  not in use.
+ //count elements of an array
 int arrayCount (char *arr)
 {
-  return sizeof(arr)/sizeof(arr[0]);
+  return sizeof(arr)/sizeof(*arr);
 }
+*/
 
 void showMenu(int cursorpos)
 {
@@ -92,19 +109,34 @@ void menuCursorPos(int cursorpos)
     showMenu(cursorpos);
     lcd.setCursor(0,cursorpos_prev);
     lcd.print(" ");
+    }
 
   if (cursorpos < LCDLINES)
   {
     lcd.setCursor(0,cursorpos);
-    lcd.print(">");
+    if (!menu_selected[menu_cursor])
+      {
+      lcd.print(">");
+      }
+      else
+      {
+      lcd.print("X");
+      }
     }
    else
    {
     lcd.setCursor(0,LCDLINES-1);
-    lcd.print(">");
+    if (!menu_selected[menu_cursor])
+      {
+      lcd.print(">");
+      }
+      else
+      {
+      lcd.print("X");
+      }
     }
     cursorpos_prev = cursorpos;
-  }
+  
 }
 
 void buttonUp()
@@ -112,40 +144,69 @@ void buttonUp()
   static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if ( (interrupt_time - last_interrupt_time) >= 200) 
     {
-    if (menu_cursor<maxmenuitem-1)
-    menu_cursor++;
+    if ( menu_cursor < (maxmenuitem - 1) && !menu_selected[menu_cursor] )
+      {
+      menu_cursor++;
+      //menuCursorPos(menu_cursor);
+      }
     }
   last_interrupt_time = interrupt_time;
   }
 
 void buttonDown()
 {
-    static unsigned long last_interrupt_time = 0;
+  static unsigned long last_interrupt_time = 0;
   unsigned long interrupt_time = millis();
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
-  if (interrupt_time - last_interrupt_time > 200) 
+  if ( (interrupt_time - last_interrupt_time) >= 200) 
     {
-    if (menu_cursor>0)
-    menu_cursor--;
+    if ( menu_cursor > 0 && !menu_selected[menu_cursor] ) 
+      {
+      menu_cursor--;
+      //menuCursorPos(menu_cursor);
+      }
     }
   last_interrupt_time = interrupt_time;
   }
 
+void buttonSelect()
+  {
+  static unsigned long last_interrupt_time = 0;
+  unsigned long interrupt_time = millis();
+  // If interrupts come faster than 200ms, assume it's a bounce and ignore
+  if ( (interrupt_time - last_interrupt_time) >= 200) 
+    {
+    menu_selected[menu_cursor] = !menu_selected[menu_cursor];
+    if (menu_selected[menu_cursor])
+      {
+      Serial.print("menu selected: "); 
+      }
+      else
+      {
+      Serial.print("menu unselected: "); 
+      }
+      Serial.println(menu_cursor);
+    }
+  last_interrupt_time = interrupt_time;
+  }
 
 void setup()
 {
-   Serial.begin(115200); //Serial Monitor Console Baud Setting
-   while (!Serial)
+  Serial.begin(115200); //Serial Monitor Console Baud Setting
+  while (!Serial)
     {
     ; // wait for serial port to connect. Needed for native USB port only
     }
   Serial.println("");
-
-  attachInterrupt(digitalPinToInterrupt(pin_up), buttonUp, FALLING); //CLK pin is an interrupt pin
-  attachInterrupt(digitalPinToInterrupt(pin_down), buttonDown, FALLING); //PushButton pin is an interrupt pin
+  pinMode(pin_up, INPUT_PULLUP); //RotaryCLK
+  pinMode(pin_down, INPUT_PULLUP); //RotaryDT
+  pinMode(pin_button, INPUT_PULLUP); //Button
   
+  attachInterrupt(digitalPinToInterrupt(pin_up), buttonUp, FALLING);     //PushButton down pin is an interrupt pin
+  attachInterrupt(digitalPinToInterrupt(pin_down), buttonDown, FALLING); //PushButton down pin is an interrupt pin
+  attachInterrupt(digitalPinToInterrupt(pin_button), buttonSelect, FALLING);   //PushButton pin is an interrupt pin
   //maxmenuitem = arrayCount(*menu_labels);
   Serial.println(maxmenuitem);
   lcd.begin();
@@ -155,5 +216,7 @@ void setup()
 
 void loop()
 {
+  yield();
+  delay(500);
   menuCursorPos(menu_cursor);
   }
