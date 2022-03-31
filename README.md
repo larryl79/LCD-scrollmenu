@@ -1,10 +1,11 @@
 # LCD-scrollmenu
 
-with buttons.
-Beta version, under developement.
+with buttons and/or rotary (encoder) switch.
+Beta version. Concept only!!!
 
 testing environment:
 - ESP32
 - 2004 LCD I2C
-- 2x button
+- 3x button
+- Rotary encoder with switch
 - Arduino IDE
