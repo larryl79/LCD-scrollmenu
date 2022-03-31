@@ -1,20 +1,33 @@
 #include <Arduino.h>
 
+/*
+ * Concept of scrolling LCD menu.
+ * 
+ * you have to uncomment at least either BUTTON_ENABKED, or either ROTARY_ENABLED (, or both).
+ * 
+ */
+#define BUTTONS_ENABLED         // uncomment this line if you want use buttons
+#define ROTARY_ENABLED         // uncomment this line if you want use rotary encoder switch
+
 // control menu by buttons
-#define pin_up 5
-#define pin_down 18
-#define pin_button 26
+#ifdef BUTTONS_ENABLED
+  #define pin_up 5
+  #define pin_down 18
+  #define pin_button 26
+#endif
 
 // control menu by rotary switch
-#define ROTARY_A 4      // somtimes reffering as CLK on rotary switch
-#define ROTARY_B  15    // somtimes reffering as DT on rotary switch
-#define ROTARY_SW  27   // rotary button pin
+#ifdef ROTARY_ENABLED
+  #define ROTARY_A 4      // somtimes reffering as CLK on rotary switch
+  #define ROTARY_B  15    // somtimes reffering as DT on rotary switch
+  #define ROTARY_SW  27   // rotary button pin
 
-#define CLICKS_PER_STEP   4   // this number depends on your rotary encoder 
-#include "ESPRotary.h";
-ESPRotary r;
-#include "Button2.h"; //  https://github.com/LennartHennigs/Button2
-Button2 b;
+  #define CLICKS_PER_STEP   4   // this number depends on your rotary encoder 
+  #include "ESPRotary.h";
+  ESPRotary r;
+  #include "Button2.h"; //  https://github.com/LennartHennigs/Button2
+  Button2 b;
+#endif
 
 #include <LiquidCrystal_I2C.h>
 #define LCDADDR 0x27                           // address of LCD on I2C bus
@@ -71,26 +84,7 @@ int arrayCount (char *arr)
  * rotary
  * 
  */
-
-// on change
-void rotate(ESPRotary& r) {
-   Serial.println(r.getPosition());
-}
-
-// on left or right rotation
-void showDirection(ESPRotary& r) {
-  Serial.println(r.directionToString(r.getDirection()));
-  if ( r.directionToString(r.getDirection()) == "LEFT" )
-    {
-      buttonDown();
-    }
-  if ( r.directionToString(r.getDirection()) == "RIGHT" )
-    {
-      buttonUp();
-    }
-   
-}
- 
+#ifdef ROTARY_ENABLED 
 // single click
 void click(Button2& btn) {
   buttonSelect();
@@ -102,7 +96,7 @@ void resetPosition(Button2& btn) {
   r.resetPosition();
   Serial.println("Reset!");
 }
-
+#endif
 
 
 /*
@@ -159,6 +153,33 @@ void showMenu(int cursorpos)
     }
 }
 
+void menuSelected(int menuPoint)
+{
+ if (menu_selected[menuPoint])
+      {
+      switch (menuPoint)
+        {
+        case 0 :
+        lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("info page 1");
+        
+        delay(50);
+        break;
+        
+        case 1 :
+        lcd.clear();
+        break;
+    
+        case 2 :
+        break;
+        
+        case 3 :
+        break;
+        }
+      }
+}
+
 void menuCursorPos(int cursorpos)
 {
   if (cursorpos != cursorpos_prev)
@@ -169,31 +190,22 @@ void menuCursorPos(int cursorpos)
     }
 
   if (cursorpos < LCDLINES)
-  {
+    {
     lcd.setCursor(0,cursorpos);
-    if (!menu_selected[menu_cursor])
-      {
-      lcd.print(">");
-      }
-      else
-      {
-      lcd.print("X");
-      }
     }
-   else
-   {
+  else
+    {
     lcd.setCursor(0,LCDLINES-1);
-    if (!menu_selected[menu_cursor])
-      {
-      lcd.print(">");
-      }
-      else
-      {
-      lcd.print("X");
-      }
     }
-    cursorpos_prev = cursorpos;
-  
+  if (!menu_selected[menu_cursor])
+    {
+    lcd.print(">");
+    }
+  else
+    {
+    lcd.print("X");
+    }
+  cursorpos_prev = cursorpos;
 }
 
 void buttonUp()
@@ -238,16 +250,39 @@ void buttonSelect()
     menu_selected[menu_cursor] = !menu_selected[menu_cursor];
     if (menu_selected[menu_cursor])
       {
-      Serial.print("menu selected: "); 
+      Serial.print("menu selected: ");
+      
       }
       else
       {
-      Serial.print("menu unselected: "); 
+      Serial.print("menu unselected: ");
+      cursorpos_prev++;
       }
       Serial.println(menu_cursor);
     }
   last_interrupt_time = interrupt_time;
   }
+
+#ifdef ROTARY_ENABLED 
+// on change
+void rotate(ESPRotary& r) {
+   Serial.println(r.getPosition());
+}
+
+// on left or right rotation
+void showDirection(ESPRotary& r) {
+  Serial.println(r.directionToString(r.getDirection()));
+  if ( r.directionToString(r.getDirection()) == "LEFT" )
+    {
+      buttonDown();
+    }
+  if ( r.directionToString(r.getDirection()) == "RIGHT" )
+    {
+      buttonUp();
+    }
+   
+}
+#endif
 
 void setup()
 {
@@ -257,6 +292,7 @@ void setup()
     ; // wait for serial port to connect. Needed for native USB port only
     }
   Serial.println("");
+  #ifdef BUTTONS_ENABLED
   // set up butons
   pinMode(pin_up, INPUT_PULLUP); //RotaryCLK
   pinMode(pin_down, INPUT_PULLUP); //RotaryDT
@@ -265,25 +301,24 @@ void setup()
   attachInterrupt(digitalPinToInterrupt(pin_up), buttonUp, FALLING);     //PushButton down pin is an interrupt pin
   attachInterrupt(digitalPinToInterrupt(pin_down), buttonDown, FALLING); //PushButton down pin is an interrupt pin
   attachInterrupt(digitalPinToInterrupt(pin_button), buttonSelect, FALLING);   //PushButton pin is an interrupt pin
+  #endif
 
+  #ifdef ROTARY_ENABLED
   // set up rotary
-  pinMode(ROTARY_A, INPUT_PULLUP); //RotaryCLK
-  pinMode(ROTARY_B, INPUT_PULLUP); //RotaryDT
-  pinMode(ROTARY_SW, INPUT_PULLUP); //Button
+    pinMode(ROTARY_A, INPUT_PULLUP); //RotaryCLK
+    pinMode(ROTARY_B, INPUT_PULLUP); //RotaryDT
+    pinMode(ROTARY_SW, INPUT_PULLUP); //Button
   
-  r.begin(ROTARY_A, ROTARY_B, CLICKS_PER_STEP);
-  r.setChangedHandler(rotate);
-  r.setLeftRotationHandler(showDirection);
-  r.setRightRotationHandler(showDirection);
+    r.begin(ROTARY_A, ROTARY_B, CLICKS_PER_STEP);
+    r.setChangedHandler(rotate);
+    r.setLeftRotationHandler(showDirection);
+    r.setRightRotationHandler(showDirection);
 
-  b.begin(ROTARY_SW);
-  b.setTapHandler(click);
-  b.setLongClickHandler(resetPosition);
+    b.begin(ROTARY_SW);
+    b.setTapHandler(click);
+    b.setLongClickHandler(resetPosition);
+  #endif
 
-  //attachInterrupt(digitalPinToInterrupt(ROTARY_A), buttonUp, FALLING);     //PushButton down pin is an interrupt pin
-  //attachInterrupt(digitalPinToInterrupt(ROTARY_B), buttonDown, FALLING); //PushButton down pin is an interrupt pin
-  //attachInterrupt(digitalPinToInterrupt(ROTARY_SW), buttonSelect, FALLING);   //PushButton pin is an interrupt pin
-  
   //maxmenuitem = arrayCount(*menu_labels);
   Serial.println(maxmenuitem);
   lcd.begin();
@@ -294,8 +329,10 @@ void setup()
 void loop()
 {
   yield();
-  r.loop();
-  b.loop();
+  #ifdef ROTARY_ENABLED
+    r.loop();
+    b.loop();
+  #endif
   menuCursorPos(menu_cursor);
-  
+  menuSelected(menu_cursor);
   }
