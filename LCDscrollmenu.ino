@@ -153,22 +153,31 @@ void showMenu(int cursorpos)
     }
 }
 
-void menuSelected(int menuPoint)
+void menuSelected(int menuPoint)   
 {
  if (menu_selected[menuPoint])
       {
-      switch (menuPoint)
+      switch (menuPoint)   
         {
+         /*
+          * write your menus loops in the cases. 
+          * 1st menupoint always 0. 
+          * you have to exetend cases to maxemnucases-1.
+          * e.g. maxemenuitems = 14 then your last case is 13
+          */
         case 0 :
         lcd.clear();
         lcd.setCursor(0,0);
-        lcd.print("info page 1");
-        
-        delay(50);
+        lcd.print("info page 1");        
+        delay(500);
         break;
         
         case 1 :
         lcd.clear();
+        lcd.setCursor(0,0);
+        lcd.print("info page 1");        
+        delay(500);
+
         break;
     
         case 2 :
@@ -248,6 +257,7 @@ void buttonSelect()
   if ( (interrupt_time - last_interrupt_time) >= 200) 
     {
     menu_selected[menu_cursor] = !menu_selected[menu_cursor];
+    // may you need make menuselect overrides here if you want to do anithing in the menu.
     if (menu_selected[menu_cursor])
       {
       Serial.print("menu selected: ");
